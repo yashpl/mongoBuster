@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"flag"
 	"log"
 	"os"
 	"os/exec"
@@ -17,12 +18,15 @@ func main() {
 	masscanInstalled() // Check if masscan binary is installed.
 	WelcomeMsg()
 
-	go execMasscan(ipAddr)
+	maxPtr := flag.String("max-rate", "1000", "Max rate at which packets will be sent")
+	flag.Parse()
+
+	go execMasscan(ipAddr, maxPtr)
 	workDispatcher(ipAddr) // Dont call this func inside execMasscan coz exec.Command is a blocking statement.
 }
 
-func execMasscan(ipAddr chan string) {
-	cmd := exec.Command("/bin/bash", "-c", "sudo masscan -p27017 0.0.0.0/0 --exclude 255.255.255.255 --open-only")
+func execMasscan(ipAddr chan string, maxPtr *string) {
+	cmd := exec.Command("/bin/bash", "-c", "sudo masscan -p27017 0.0.0.0/0 --exclude 255.255.255.255 --open-only --max-rate "+*maxPtr)
 	ok, err := cmd.StdoutPipe()
 
 	if err != nil {
