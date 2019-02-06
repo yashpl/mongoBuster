@@ -26,3 +26,4 @@ Note: Run it with sudo as Masscan requires sudo access.
 * Worlds fastest and most efficient scanner ( Uses Masscan ).
 * Scans entire internet by default, So fire the tool and chill.
 * Hyper efficient - Uses Go-routines which are even lighter than threads.
+* Scans are resumed ( Config file saved as paused.conf )
