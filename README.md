@@ -3,8 +3,9 @@ Hunt Open MongoDB instances
 
 ### Pre-Requisites - 
 
-* Go language ( sudo apt install golang)
+* Go language ( sudo apt install golang )
 * Masscan ( sudo apt install masscan )
+* Tested on Ubuntu & Kali linux
 
 ### How to install and run - 
 
