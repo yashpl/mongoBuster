@@ -31,4 +31,4 @@ Note: Run it with sudo as Masscan requires sudo access.
 
 |Flag| Description 
 |---|
-|--max-rate= (int)| Defines maximum rate at which packets are generated and sent. Default is 1000 
+|--max-rate= (int)| Defines maximum rate at which packets are generated and sent. Default is 1000.
