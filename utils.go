@@ -6,13 +6,6 @@ import (
 	"regexp"
 )
 
-//Check for errors during file write
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 //Masscan outputs some text along with IP addr, this function strips unwanted text.
 func filterIP(input string) string {
 	numBlock := "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
