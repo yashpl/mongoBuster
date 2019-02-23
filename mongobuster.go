@@ -4,25 +4,28 @@ import (
 	"bufio"
 	"context"
 	"flag"
+	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
-	"regexp"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
 )
 
 func main() {
 	ipAddr := make(chan string)
+	data := make(chan string)
 
 	masscanInstalled() // Check if masscan binary is installed.
 	WelcomeMsg()
 
-	maxPtr := flag.String("max-rate", "1000", "Max rate at which packets will be sent")
+	maxPtr := flag.String("max-rate", "100", "Max rate at which packets will be sent")
+	outFile := flag.String("out-file", "IPs.log", "Name of file to which vulnerable IPs will be exported")
 	flag.Parse()
 
 	go execMasscan(ipAddr, maxPtr)
-	workDispatcher(ipAddr) // Dont call this func inside execMasscan coz exec.Command is a blocking statement.
+	go fileWriter(data, outFile)
+	workDispatcher(ipAddr, data) // Dont call this func inside execMasscan coz exec.Command is a blocking statement.
 }
 
 func execMasscan(ipAddr chan string, maxPtr *string) {
@@ -50,76 +53,48 @@ func execMasscan(ipAddr chan string, maxPtr *string) {
 	}
 }
 
-func workDispatcher(ipAddr chan string) {
+func workDispatcher(ipAddr chan string, data chan string) {
 	num := 0
 	for value := range ipAddr {
 		num++
-		print("\rTotal MongoDB servers found - ", num)
-		go testIP(filterIP(value))
+		print("\rTotal servers with port 27017 open - ", num)
+		go testIP(filterIP(value), data)
 	}
 }
 
-//Masscan outputs some text along with IP addr, this function strips unwanted text.
-func filterIP(input string) string {
-	numBlock := "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
-	regexPattern := numBlock + "\\." + numBlock + "\\." + numBlock + "\\." + numBlock
+func testIP(input string, data chan string) {
 
-	regEx := regexp.MustCompile(regexPattern)
-	return regEx.FindString(input)
-}
-
-func masscanInstalled() bool {
-	cmd := exec.Command("/bin/bash", "-c", "sudo masscan -v ")
-	_, err := cmd.StdoutPipe()
+	client, err := mongo.Connect(context.TODO(), "mongodb://"+input+":27017/test")
 
 	if err != nil {
-		print(err)
-		print(`Masscan not found!
-If you are running Ubuntu or Kali linux, Install Masscan by running -
-
-sudo apt install masscan
-
-For other disctributions check masscan's git repo for install instructions - 
-https://github.com/robertdavidgraham/masscan
-`)
-		os.Exit(0)
-		return false
-	}
-	return true
-}
-
-func testIP(input string) {
-
-	client, err := mongo.Connect(context.TODO(), "mongodb://"+input)
-
-	if err != nil {
-		// log.Fatal(err)
+		return
 	}
 
 	// Check the connection
 	err = client.Ping(context.TODO(), nil)
 
+	//If we can list databases , we can read records to!
+	_, err = client.ListDatabaseNames(context.TODO(), bson.D{{}})
+
 	if err != nil {
-		// log.Fatal(err)
+		print("\r\033[K" + input + ": ")
+		println(err.Error())
 	} else {
+		println("\r\033[K" + input + " is VULNERABLE")
 		println("")
-		println(input + " is VULNERABLE")
-		println("")
+		data <- input
+
 	}
 
 }
 
-// WelcomeMsg prints welcome msg :D (Go-Lint compatabilty).
-func WelcomeMsg() {
-	print(`
-███╗   ███╗ ██████╗ ███╗   ██╗ ██████╗  ██████╗       ██████╗ ██╗   ██╗███████╗████████╗███████╗██████╗ 
-████╗ ████║██╔═══██╗████╗  ██║██╔════╝ ██╔═══██╗      ██╔══██╗██║   ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗
-██╔████╔██║██║   ██║██╔██╗ ██║██║  ███╗██║   ██║█████╗██████╔╝██║   ██║███████╗   ██║   █████╗  ██████╔╝
-██║╚██╔╝██║██║   ██║██║╚██╗██║██║   ██║██║   ██║╚════╝██╔══██╗██║   ██║╚════██║   ██║   ██╔══╝  ██╔══██╗
-██║ ╚═╝ ██║╚██████╔╝██║ ╚████║╚██████╔╝╚██████╔╝      ██████╔╝╚██████╔╝███████║   ██║   ███████╗██║  ██║
-╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝  ╚═════╝       ╚═════╝  ╚═════╝ ╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
-																																			   
+func fileWriter(data chan string, outFile *string) {
 
-Started Scannig servers.
-`)
+	for value := range data {
+
+		toWrite := []byte(value)
+		err := ioutil.WriteFile(*outFile, toWrite, 0644)
+		check(err)
+	}
+
 }
