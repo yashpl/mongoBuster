@@ -20,7 +20,7 @@ git clone https://github.com/yashpl/mongoBuster.git
 
 cd mongoBuster
 
-go build mongobuster.go
+go build mongobuster.go utils.go
 
 sudo ./mongobuster
 ```
