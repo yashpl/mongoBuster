@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/pkg/profile"
 )
 
 var maxPtr *string
@@ -18,6 +19,7 @@ var outFile *string
 var verbose *bool
 
 func main() {
+	defer profile.Start(profile.MemProfile).Stop()
 	ipAddr := make(chan string)
 	data := make(chan string)
 
@@ -65,6 +67,7 @@ func execMasscan(ipAddr chan string) {
 }
 
 func workDispatcher(ipAddr chan string, data chan string) {
+	print("Started Scannig servers.")
 	num := 0
 	for value := range ipAddr {
 		num++
